@@ -34,6 +34,64 @@
   <script src="./scripts/pdfChecker.js"></script>
 
 <script>
+
+  // ===========================
+  // === Msg sending & receiving between parent WFA app.
+
+  var mainData = {};
+
+  // [Msg] - Handle the msg actions sent from parent  
+  window.addEventListener('message', function (event) 
+  {
+    if ( event.data.actions ) event.data.actions.forEach( act => handleMsgAction( act ) );
+    
+    if ( event.data.action ) handleMsgAction( event.data.action );
+  });
+
+  function handleMsgAction( action )
+  {
+    if ( action )
+    {
+      try {
+        if ( action.callBackEval ) eval( action.callBackEval );
+      }
+      catch ( errMsg ) { console.log( 'ERROR in handleMsgAction, ' + errMsg ); }
+    }
+  };
+
+  // ------------------------
+  // 'callBackEval' used methods..
+
+  function clientsFound( data )
+  {
+    // Handle array of clients data returned as result of search.
+    alertData( data );
+  };
+
+  function alertData( data )
+  {
+    if ( !data ) alert( 'empty data' );    
+    else if ( typeof( data ) === 'string' ) alert( data );
+    else if ( typeof( data ) === 'object' ) alert( JSON.stringify( data ) );
+    else alert( 'other data: ' + data.toString() );
+  };
+
+  // ------------------------
+
+  // On Start, ask WFA for jobAid FolderNames
+  window.parent.postMessage( { 'from': 'jobAidIFrame', 'actions': [ 
+    { name: 'getJobFolderNames', callBackEval: ' mainData.folderData = action.data; alertData( mainData ); ' }, 
+    { name: 'getCountryCode_NoT', callBackEval: ' mainData.countryCode = action.data; alertData( mainData ); ' } 
+  ] }, '*');
+
+  window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
+    { name: 'clientSearch', searchType: 'offline', callBackEval: 'clientsFound( action.data );', 
+      data: { firstName: 'Tester', lastName: 'Last' } } 
+  }, '*' );
+
+  // ===========================================
+
+
   $(document).ready( function() {
 
     var vtest = "version 0.3";
@@ -89,10 +147,10 @@
       $(".list").hide();
       $("Body").css({"background-image": "none"});
 
-      window.location.href = 'j1/index.html';
+      var fdnJson = mainData.folderData;
+      var folderName = ( fdnJson && fdnJson.react1 ) ? fdnJson.react1: 'j1';
 
-      //var newPageDivTag = $( '.newPageDiv' ).show();
-
+      window.location.href = folderName + '/index.html';
     });
 
 
