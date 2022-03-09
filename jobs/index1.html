@@ -28,8 +28,8 @@
 
     .fab_close { z-index: 3500; }
   </style>
-
-  <script src="../scripts/libraries/jquery-3.4.1.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  <script src="./scripts/libraries/jquery-3.4.1.min.js"></script>
   <script src="./scripts/libraries/jquery-ui.js"></script>
   <script src="./scripts/pdfChecker.js"></script>
 
@@ -79,15 +79,15 @@
   // ------------------------
 
   // On Start, ask WFA for jobAid FolderNames
-  window.parent.postMessage( { 'from': 'jobAidIFrame', 'actions': [ 
+  /* window.parent.postMessage( { 'from': 'jobAidIFrame', 'actions': [ 
     { name: 'getJobFolderNames', callBackEval: ' mainData.folderData = action.data; alertData( mainData ); ' }, 
     { name: 'getCountryCode_NoT', callBackEval: ' mainData.countryCode = action.data; alertData( mainData ); ' } 
-  ] }, '*');
+  ] }, '*'); */
 
-  window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
+  /* window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
     { name: 'clientSearch', searchType: 'offline', callBackEval: 'clientsFound( action.data );', 
       data: { firstName: 'Tester', lastName: 'Last' } } 
-  }, '*' );
+  }, '*' ); */
 
 /*
   window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
@@ -162,6 +162,33 @@
       var folderName = ( fdnJson && fdnJson.react1 ) ? fdnJson.react1: 'j1';
 
       window.location.href = folderName + '/index.html';
+    });
+
+    /**
+    * LAUNCH SMART START 
+    */
+    $("#smartStartEN").click(function () 
+    {
+      $(".Nav1").hide();
+      $(".list").hide();
+      $("Body").css({"background-image": "none"});
+
+      var fdnJson = mainData.folderData;
+      var folderName = ( fdnJson && fdnJson.react1 ) ? fdnJson.react1: 'SS';
+
+      window.location.href = folderName + '/EN/index.html';
+    });
+
+    $("#smartStartAM").click(function () 
+    {
+      $(".Nav1").hide();
+      $(".list").hide();
+      $("Body").css({"background-image": "none"});
+
+      var fdnJson = mainData.folderData;
+      var folderName = ( fdnJson && fdnJson.react1 ) ? fdnJson.react1: 'SS';
+
+      window.location.href = folderName + '/AM/index.html';
     });
 
 
@@ -647,7 +674,31 @@
 
   <div class="wrapper">
     <div class="list">
-      <div class="card" id="smartStart">
+      <div class="card" id="smartStartEN">
+        <div class="card__container">
+          <card__support_visuals class="card__support_visuals">
+            <img src="./images/JobAidicons.svg">
+          </card__support_visuals>
+          <card__content class="card__content">
+            <div class="card__row"><b>Smart Start [English]</b></div>
+            <div class="card__row">ver 0.3.0 Mar 9, 2022</div>
+            <div class="card__row">0.04 GB</div>
+          </card__content>
+        </div>
+      </div>
+      <div class="card" id="smartStartAM">
+        <div class="card__container">
+          <card__support_visuals class="card__support_visuals">
+            <img src="./images/JobAidicons.svg">
+          </card__support_visuals>
+          <card__content class="card__content">
+            <div class="card__row"><b>Smart Start [Amharic]</b></div>
+            <div class="card__row">ver 0.3.0 Mar 9, 2022</div>
+            <div class="card__row">0.04 GB</div>
+          </card__content>
+        </div>
+      </div>
+      <!-- <div class="card" id="smartStart">
         <div class="card__container">
           <card__support_visuals class="card__support_visuals">
             <img src="./images/JobAidicons.svg">
@@ -682,7 +733,7 @@
             <div class="card__row">0.1 GB</div>
           </card__content>
         </div>
-      </div>
+      </div> -->
     </div>
 
     <div class="divPdfGo" class="iframeDiv" style="display: none;">
