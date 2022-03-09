@@ -89,6 +89,17 @@
       data: { firstName: 'Tester', lastName: 'Last' } } 
   }, '*' );
 
+/*
+  window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
+    { name: 'WFARunEval',
+      WFARunEval: [ '		var clientList = ClientDataManager.getClientListByFields( action.data ); ',
+		    ' { callBackEval: action.callBackEval, data: clientList };'
+      ],
+      callBackEval: 'clientsFound( action.data );', 
+      data: { firstName: 'Tester', lastName: 'Last' } } 
+  }, '*' );
+*/
+
   // ===========================================
 
 
