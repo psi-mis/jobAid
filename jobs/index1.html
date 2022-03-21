@@ -54,6 +54,8 @@
     {
       try {
         if ( action.callBackEval ) eval( action.callBackEval );
+        // NEW
+        else if ( action.msgData && action.msgData.type === 'jobFiling' ) updateJobFiling( action.msgData );
       }
       catch ( errMsg ) { console.log( 'ERROR in handleMsgAction, ' + errMsg ); }
     }
@@ -65,7 +67,8 @@
   function clientsFound( data )
   {
     // Handle array of clients data returned as result of search.
-    alertData( data );
+    console.log( '==> Returned Client Data:' );
+    console.log( data );
   };
 
   function alertData( data )
@@ -76,29 +79,96 @@
     else alert( 'other data: ' + data.toString() );
   };
 
+
+  // ===================
+  // === NEW ===
+
+  function getProjCardTag( projDir )
+  {
+    return $( 'div.card[projDir=' + projDir + ']' );
+  };
+
+  function updateJobFiling( msgData )
+  {
+    // { type: 'jobFiling', process: { total: totalCount, curr: doneCount, name: reqUrl }, options: options }    
+    var projCardTag = getProjCardTag( msgData.options.projDir ); // $( 'div.card[projDir=' + msgData.options.projDir + ']' );
+
+    if ( projCardTag.length > 0 )
+    {
+      var spanTag = projCardTag.find( 'span.downloadStatus' );
+
+      var prc = msgData.process;
+
+			if (prc.total && prc.total > 0 && prc.curr )
+      {
+        if ( prc.curr < prc.total) {
+          spanTag.text( 'Processing ' + prc.curr + ' of ' + prc.total + ' [' + prc.name + ']' );
+          if ( prc.curr > 5 ) projCardTag.attr( 'downloaded', 'Y' ); // Allows for 'click' to enter the proj
+        }
+			  else {
+          spanTag.text('Processing all done.');	
+          projCardTag.attr( 'downloaded', 'Y' ); // Allows for 'click' to enter the proj
+        }
+      }
+
+      //row3Tag.append( spanTag );
+    }
+  };
+
+  function updateProjCards_wtStatus( jobFilingStatus )
+  {
+    for ( var prop in jobFilingStatus )
+    {
+      var statusJson = jobFilingStatus[ prop ];
+
+      if ( prop === 'jobListingApp' ) {}  // do nothing for listing app info..
+      else
+      {
+        var projCardTag = getProjCardTag( prop );
+        if ( projCardTag.length > 0 )
+        {
+          if ( statusJson.curr === statusJson.total || statusJson.curr > 5 ) setProjCardStatus( projCardTag, statusJson );
+        }
+      }
+    }
+  };
+
+  function setProjCardStatus( projCardTag, statusJson )
+  {
+    var statusStr = statusJson.curr + '/' + statusJson.total;
+    if ( statusJson.name ) statusStr += ' ' + statusJson.name;
+
+    projCardTag.find( 'span.downloadStatus' ).text( 'downloaded. ' + statusStr );
+  };
+
   // ------------------------
 
   // On Start, ask WFA for jobAid FolderNames
   window.parent.postMessage( { 'from': 'jobAidIFrame', 'actions': [ 
-    { name: 'getJobFolderNames', callBackEval: ' mainData.folderData = action.data; alertData( mainData ); ' }, 
-    { name: 'getCountryCode_NoT', callBackEval: ' mainData.countryCode = action.data; alertData( mainData ); ' } 
+    { name: 'getJobFolderNames', callBackEval: ' mainData.folderData = action.data; ' }, 
+    { name: 'getCountryCode_NoT', callBackEval: ' mainData.countryCode = action.data; ' } 
   ] }, '*');
 
+  /*
   window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
     { name: 'clientSearch', searchType: 'offline', callBackEval: 'clientsFound( action.data );', 
       data: { firstName: 'Tester', lastName: 'Last' } } 
   }, '*' );
+  */
 
-/*
+
+  // NEW: Get JobFiling (Previously done) status on start of THIS ListingApp
   window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
     { name: 'WFARunEval',
-      WFARunEval: [ '		var clientList = ClientDataManager.getClientListByFields( action.data ); ',
-		    ' { callBackEval: action.callBackEval, data: clientList };'
+      WFARunEval: [ '	var jobFiliingStatus = PersisDataLSManager.getJobFilingStatus(); ',
+		    ' var tmpData = {}',
+        ' tmpData.callBackEval = action.callBackEval; ',
+        ' tmpData.data = jobFiliingStatus; ',
+        ' tmpData; '
       ],
-      callBackEval: 'clientsFound( action.data );', 
-      data: { firstName: 'Tester', lastName: 'Last' } } 
+      callBackEval: 'mainData.jobFilingStatus = action.data;  updateProjCards_wtStatus( mainData.jobFilingStatus ); '
+    }
   }, '*' );
-*/
 
   // ===========================================
 
@@ -154,14 +224,48 @@
 
     $("#reactApp1Start").click(function () 
     {
-      $(".Nav1").hide(); //animate({ height: 'toggle' });
-      $(".list").hide();
-      $("Body").css({"background-image": "none"});
+      var projDir = $( this ).attr( 'projDir' );
 
-      var fdnJson = mainData.folderData;
-      var folderName = ( fdnJson && fdnJson.react1 ) ? fdnJson.react1: 'j1';
+      //var react1Tag = $( this );
+      //react1Tag.attr( 'projDir', projDir ); // #1 Mark this with 'projDir' attr for finding this proj by 'updateJobFiling()'.
+      //var downloaded = react1Tag.attr( 'downloaded' );
 
-      window.location.href = folderName + '/index.html';
+      //if ( downloaded === 'Y' )
+      //{
+
+        $(".Nav1").hide(); //animate({ height: 'toggle' });
+        $(".list").hide();
+        $("Body").css({"background-image": "none"});
+
+        var folderName = 'jobAid/' + projDir;
+
+        window.location.href = folderName + '/index.html';
+
+      /*
+      }
+      else
+      {
+        window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
+          { name: 'WFARunEval',
+            WFARunEval: ' JobAidHelper.runTimeCache_JobAid( { projDir: "' + projDir + '", target: "jobAidIFrame" } ); '        
+          } }, '*' );
+      }
+      */
+    });
+
+    $( 'button.download' ).click( function( e ) 
+    {
+      e.stopPropagation();
+
+      var btnTag = $( this );
+      var projCardTag = btnTag.closest( 'div.card[projDir]' );
+
+      var projDir = projCardTag.attr( 'projDir' );
+
+      window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
+        { name: 'WFARunEval',
+          WFARunEval: ' JobAidHelper.runTimeCache_JobAid( { projDir: "' + projDir + '", target: "jobAidIFrame" } ); '        
+        } }, '*' );
     });
 
 
@@ -613,7 +717,7 @@
         <path class="menu-icon" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
       </svg>
     </div>
-    <div class="Nav__Title">Job Aids <div class="divPageReload" style="display: contents; cursor: pointer;"> [O]</div>
+    <div class="Nav__Title">Job Aids <div class="divPageReload" style="display: contents; cursor: pointer;"> [1.2] </div>
     </div>
     <div class="Nav__sync">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -653,9 +757,9 @@
             <img src="./images/JobAidicons.svg">
           </card__support_visuals>
           <card__content class="card__content">
-            <div class="card__row"><b>Smart Start</b></div>
-            <div class="card__row">ver 1.45 Apr 12, 2021</div>
-            <div class="card__row">1.2 GB</div>
+            <div class="card__row" row="1"><b>Smart Start</b></div>
+            <div class="card__row" row="2">ver 1.45 Apr 12, 2021</div>
+            <div class="card__row" row="3">1.2 GB</div>
           </card__content>
         </div>
       </div>
@@ -665,21 +769,33 @@
             <img src="./images/kuwa_mjanja.png">
           </card__support_visuals>
           <card__content class="card__content">
-            <div class="card__row"><b>Kuwa Mjanja</b></div>
-            <div class="card__row">ver 2.4.13 Feb 3/2019</div>
-            <div class="card__row">2.5 GB<a href="" class="aPdfTab" target="_blank"></a></div>
+            <div class="card__row" row="1"><b>Kuwa Mjanja</b></div>
+            <div class="card__row" row="2">ver 2.4.13 Feb 3/2019</div>
+            <div class="card__row" row="3">2.5 GB<a href="" class="aPdfTab" target="_blank"></a></div>
           </card__content>
         </div>
       </div>
-      <div class="card" id="reactApp1Start">
+      <div class="card" id="reactApp1Start" projDir="proj1">
         <div class="card__container">
           <card__support_visuals class="card__support_visuals">
             <img src="./images/kuwa_mjanja.png">
           </card__support_visuals>
           <card__content class="card__content">
-            <div class="card__row"><b>React App1</b></div>
-            <div class="card__row">ver 1.0.0 Jan 17/2021</div>
-            <div class="card__row">0.1 GB</div>
+            <div class="card__row" row="1"><b>React App1</b></div>
+            <div class="card__row" row="2">ver 1.0.0 Jan 17/2021</div>
+            <div class="card__row" row="3">0.1 GB <button class="download">download</button> <span class="downloadStatus"></span></div>
+          </card__content>
+        </div>
+      </div>
+      <div class="card" id="reactApp1Start" projDir="proj2">
+        <div class="card__container">
+          <card__support_visuals class="card__support_visuals">
+            <img src="./images/kuwa_mjanja.png">
+          </card__support_visuals>
+          <card__content class="card__content">
+            <div class="card__row" row="1"><b>React App2</b></div>
+            <div class="card__row" row="2">ver 1.0.0 Jan 17/2021</div>
+            <div class="card__row" row="3">0.1 GB <button class="download">download</button> <span class="downloadStatus"></span></div>
           </card__content>
         </div>
       </div>
