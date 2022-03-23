@@ -21,6 +21,83 @@
     // ===========================
     // === Msg sending & receiving between parent WFA app.
 
+    var mainData = {};
+
+    // [Msg] - Handle the msg actions sent from parent  
+    window.addEventListener('message', function (event) {
+      if (event.data.actions) event.data.actions.forEach(act => handleMsgAction(act));
+
+      if (event.data.action) handleMsgAction(event.data.action);
+    });
+
+    function handleMsgAction(action) {
+      if (action) {
+        try {
+          if (action.callBackEval) eval(action.callBackEval);
+          // NEW
+          else if (action.msgData && action.msgData.type === 'jobFiling') updateJobFiling(action.msgData);
+        }
+        catch (errMsg) { console.log('ERROR in handleMsgAction, ' + errMsg); }
+      }
+    };
+
+    // ------------------------
+    
+    function getProjCardTag(projDir) {
+      return $('div.card[projDir=' + projDir + ']');
+    };
+
+    function updateJobFiling(msgData) {
+      // { type: 'jobFiling', process: { total: totalCount, curr: doneCount, name: reqUrl }, options: options }    
+      var projCardTag = getProjCardTag(msgData.options.projDir); // $( 'div.card[projDir=' + msgData.options.projDir + ']' );
+
+      if (projCardTag.length > 0) {
+        var spanTag = projCardTag.find('span.downloadStatus');
+
+        var prc = msgData.process;
+
+        if (prc.total && prc.total > 0 && prc.curr) {
+          if (prc.curr < prc.total) {
+            /* spanTag.text('Processing ' + prc.curr + ' of ' + prc.total + ' [' + prc.name + ']'); */
+            spanTag.text('Processing:' + ((prc.curr / prc.total).toFixed(2) * 100) + ' %');
+            if (prc.curr > 5) projCardTag.attr('downloaded', 'Y'); // Allows for 'click' to enter the proj
+            projCardTag.css('opacity',1)
+          }
+          else {
+            spanTag.text('Download completed!');
+            projCardTag.attr('downloaded', 'Y'); // Allows for 'click' to enter the proj
+            projCardTag.css('opacity',1)
+          }
+        }
+      }
+    };
+
+    function updateProjCards_wtStatus(jobFilingStatus) {
+      
+      for (var prop in jobFilingStatus) {
+        var statusJson = jobFilingStatus[prop];
+
+        if (prop === 'jobListingApp') { }  // do nothing for listing app info..
+        else {
+          var projCardTag = getProjCardTag(prop);
+          
+          if (projCardTag.length > 0) {
+            if (statusJson.curr === statusJson.total || statusJson.curr > 5) setProjCardStatus(projCardTag, statusJson);
+          }
+        }
+      }
+    };
+
+    function setProjCardStatus(projCardTag, statusJson) {
+      var statusStr = statusJson.curr + '/' + statusJson.total;
+      if (statusJson.name) statusStr += ' ' + statusJson.name;
+
+      projCardTag.find('span.downloadStatus').text('downloaded. ' + statusStr);
+      projCardTag.css('opacity',1)
+    };
+    
+    // ------------------------
+
     const jobAidsVersion = 'v0.5.7'
     const buildDate = 'Mar 22, 2022'
     const downloadSize = '0.04 GB'
@@ -30,45 +107,11 @@
       {language:"Oromiffa", code:"OM"}
     ]
 
-    var mainData = {};
-
-    // [Msg] - Handle the msg actions sent from parent  
-    window.addEventListener('message', function (event) 
-    {
-      if ( event.data.actions ) event.data.actions.forEach( act => handleMsgAction( act ) );
-      
-      if ( event.data.action ) handleMsgAction( event.data.action );
-    });
-
-    function handleMsgAction( action )
-    {
-      if ( action )
-      {
-        try {
-          if ( action.callBackEval ) eval( action.callBackEval );
-        }
-        catch ( errMsg ) { console.log( 'ERROR in handleMsgAction, ' + errMsg ); }
-      }
-    };
-
-    // ------------------------
-
     // On Start, ask WFA for jobAid FolderNames
     window.parent.postMessage( { 'from': 'jobAidIFrame', 'actions': [ 
-      { name: 'getJobFolderNames', callBackEval: ' mainData.folderData = action.data; ' }, 
+      /* { name: 'getJobFolderNames', callBackEval: ' mainData.folderData = action.data;  */
       { name: 'getCountryCode_NoT', callBackEval: ' mainData.countryCode = action.data; ' } 
     ] }, '*');
-
-  /*   window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
-      { name: 'WFARunEval',
-        WFARunEval: [ 
-          '		var clientList = ClientDataManager.getClientListByFields( action.data ); ',
-          ' { callBackEval: action.callBackEval, data: clientList };'
-        ],
-        callBackEval: 'clientsFound( action.data );', 
-        data: { firstName: 'Tester', lastName: 'Last' } } 
-    }, '*' ); */
-
 
     // ===========================================
 
@@ -96,10 +139,9 @@
       /**
       * BUILD SMART START LIST
       */ 
-
       availableVersions.forEach(lang => $('.list').append(
         `
-        <div class="card smartStart" data-language="${lang.code}">
+        <div class="card smartStart" data-language="${lang.code}" ${'projDir='+lang.code} style="opacity:0.5">
           <div class="card__container">
             <card__support_visuals class="card__support_visuals">
               <img src="./images/JobAidicons.svg">
@@ -108,11 +150,39 @@
               <div class="card__row"><strong>Smart Start ${jobAidsVersion} [${lang.language}]</strong></div>
               <div class="card__row"><strong>Release date:</strong> ${buildDate}</div>
               <div class="card__row"><strong>Download size:</strong> ${downloadSize}</div>
+              <div class="card__row"><span class="downloadStatus"></span></div>
             </card__content>
+            <card__cta class="card__cta">
+              <div class="download"><svg  width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="Nav__sync-d"
+                  d="M12 24C18.6274 24 24 18.6274 24 12C24 5.37258 18.6274 0 12 0C5.37258 0 0 5.37258 0 12C0 18.6274 5.37258 24 12 24Z"
+                  fill="white" />
+                <path class="Nav__sync-s"
+                  d="M12 4V1L8 5L12 9V6C15.31 6 18 8.69 18 12C18 13.01 17.75 13.97 17.3 14.8L18.76 16.26C19.54 15.03 20 13.57 20 12C20 7.58 16.42 4 12 4ZM12 18C8.69 18 6 15.31 6 12C6 10.99 6.25 10.03 6.7 9.2L5.24 7.74C4.46 8.97 4 10.43 4 12C4 16.42 7.58 20 12 20V23L16 19L12 15V18Z"
+                  fill="#333333" />
+              </svg></div>
+            </card__cta>
           </div>
         </div>
       `
       ))
+        //<button class="download">Download</button><br/>
+      // NEW: Get JobFiling (Previously done) status on start of THIS ListingApp
+      window.parent.postMessage({
+        'from': 'jobAidIFrame', 'action':
+        {
+          name: 'WFARunEval',
+          WFARunEval: ['	var jobFiliingStatus = PersisDataLSManager.getJobFilingStatus(); ',
+            ' var tmpData = {}',
+            ' tmpData.callBackEval = action.callBackEval; ',
+            ' tmpData.data = jobFiliingStatus; ',
+            ' tmpData; '
+          ],
+          callBackEval: 'mainData.jobFilingStatus = action.data;  updateProjCards_wtStatus( mainData.jobFilingStatus ); '
+        }
+      }, '*');
+
+      
 
       /**
       * LAUNCH SMART START 
@@ -120,17 +190,50 @@
 
       $(".smartStart").click(function () 
       {
+        const filesDownloaded = $(this).attr('downloaded')
+        if(!filesDownloaded || filesDownloaded!='Y') return alert('Files not downloaded. Please click on sync button to download related files.') 
+
         const language = $(this).data('language').toUpperCase()
         $(".Nav1").hide();
         $(".list").hide();
         $("Body").css({"background-image": "none"});
 
         var fdnJson = mainData.folderData;
-        //var folderName = ( fdnJson && fdnJson.react1 ) ? fdnJson.react1: 'v0.4.1';
-        //var folderName = 'v0.5.0';
+        window.location.href = `jobAid/${language}/index.html`;
+      });
 
-        //window.location.href = folderName + `/${language}/index.html`;
-        window.location.href = jobAidsVersion + `/${language}/index.html`;
+      $('button.download').click(function (e) {
+        e.stopPropagation();
+
+        var btnTag = $(this);
+        var projCardTag = btnTag.closest('div.card[projDir]');
+
+        var projDir = projCardTag.attr('projDir');
+
+        window.parent.postMessage({
+          'from': 'jobAidIFrame', 'action':
+          {
+            name: 'WFARunEval',
+            WFARunEval: ' JobAidHelper.runTimeCache_JobAid( { projDir: "' + projDir + '", target: "jobAidIFrame" } ); '
+          }
+        }, '*');
+      });
+
+      $('div.download').click(function (e) {
+        e.stopPropagation();
+
+        var btnTag = $(this);
+        var projCardTag = btnTag.closest('div.card[projDir]');
+
+        var projDir = projCardTag.attr('projDir');
+
+        window.parent.postMessage({
+          'from': 'jobAidIFrame', 'action':
+          {
+            name: 'WFARunEval',
+            WFARunEval: ' JobAidHelper.runTimeCache_JobAid( { projDir: "' + projDir + '", target: "jobAidIFrame" } ); '
+          }
+        }, '*');
       });
 
       // ================================================================
