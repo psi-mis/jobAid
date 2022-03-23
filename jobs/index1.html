@@ -12,616 +12,178 @@
 
   <link href="./css/style.css" rel="stylesheet">
 
-  <style>
-    .iframeDiv
-    {
-      position: fixed;
-      height: 100vh;
-      width: 100vw;
-      bottom: 0;
-      left: 0;
-      z-index: 3300;
-      background-color: white;
-    }
-
-    .nav_bottom { z-index: 3500; }
-
-    .fab_close { z-index: 3500; }
-  </style>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
   <script src="./scripts/libraries/jquery-3.4.1.min.js"></script>
   <script src="./scripts/libraries/jquery-ui.js"></script>
-  <script src="./scripts/pdfChecker.js"></script>
 
-<script>
+  <script>
 
-  // ===========================
-  // === Msg sending & receiving between parent WFA app.
+    // ===========================
+    // === Msg sending & receiving between parent WFA app.
 
-  var mainData = {};
+    const jobAidsVersion = 'v0.5.7'
+    const buildDate = 'Mar 22, 2022'
+    const downloadSize = '0.04 GB'
+    const availableVersions = [
+      /* {language:"English", code:"EN"}, */
+      {language:"Amharic", code:"AM"},
+      {language:"Oromiffa", code:"OM"}
+    ]
 
-  // [Msg] - Handle the msg actions sent from parent  
-  window.addEventListener('message', function (event) 
-  {
-    if ( event.data.actions ) event.data.actions.forEach( act => handleMsgAction( act ) );
-    
-    if ( event.data.action ) handleMsgAction( event.data.action );
-  });
+    var mainData = {};
 
-  function handleMsgAction( action )
-  {
-    if ( action )
+    // [Msg] - Handle the msg actions sent from parent  
+    window.addEventListener('message', function (event) 
     {
-      try {
-        if ( action.callBackEval ) eval( action.callBackEval );
-      }
-      catch ( errMsg ) { console.log( 'ERROR in handleMsgAction, ' + errMsg ); }
-    }
-  };
-
-  // ------------------------
-  // 'callBackEval' used methods..
-
-  function clientsFound( data )
-  {
-    // Handle array of clients data returned as result of search.
-    alertData( data );
-  };
-
-  function alertData( data )
-  {
-    if ( !data ) alert( 'empty data' );    
-    else if ( typeof( data ) === 'string' ) alert( data );
-    else if ( typeof( data ) === 'object' ) alert( JSON.stringify( data ) );
-    else alert( 'other data: ' + data.toString() );
-  };
-
-  // ------------------------
-
-  // On Start, ask WFA for jobAid FolderNames
-  /* window.parent.postMessage( { 'from': 'jobAidIFrame', 'actions': [ 
-    { name: 'getJobFolderNames', callBackEval: ' mainData.folderData = action.data; alertData( mainData ); ' }, 
-    { name: 'getCountryCode_NoT', callBackEval: ' mainData.countryCode = action.data; alertData( mainData ); ' } 
-  ] }, '*'); */
-
-  /* window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
-    { name: 'clientSearch', searchType: 'offline', callBackEval: 'clientsFound( action.data );', 
-      data: { firstName: 'Tester', lastName: 'Last' } } 
-  }, '*' ); */
-
-/*
-  window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
-    { name: 'WFARunEval',
-      WFARunEval: [ '		var clientList = ClientDataManager.getClientListByFields( action.data ); ',
-		    ' { callBackEval: action.callBackEval, data: clientList };'
-      ],
-      callBackEval: 'clientsFound( action.data );', 
-      data: { firstName: 'Tester', lastName: 'Last' } } 
-  }, '*' );
-*/
-
-  // ===========================================
-
-
-  $(document).ready( function() {
-
-    var vtest = "version 0.3";
-
-    $( '.divPageReload' ).append( '<span>' + location.href.substring( location.href.lastIndexOf('/') + 1) + '</span>' );
-
-    $( '.divPageReload' ).click( function(e) {
-      e.preventDefault;
-      e.stopPropagation();
-      location.reload(true);
+      if ( event.data.actions ) event.data.actions.forEach( act => handleMsgAction( act ) );
+      
+      if ( event.data.action ) handleMsgAction( event.data.action );
     });
 
-    $('#btnPageClose').click(function () {
-      // Doing below prevent 'data' to be sent properly
-      //alert( 'ready!' );  //console.log( "ready!" );
-
-      var data = { 'from': 'jobAidIFrame', 'action': 'hideIFrame' };
-      window.parent.postMessage(data, '*');
-    });
-
-    $('#btnSendMsg').click(function () {
-      var data = { 'from': 'jobAidIFrame', 'action': 'sendMsg', 'msg': $('#inputMsg').val() };
-      window.parent.postMessage(data, '*');
-    });
-
-    $( '.exitJobAids' ).click( function() {
-      var data = { 'from': 'jobAidIFrame', 'action': 'hideIFrame' };
-      window.parent.postMessage(data, '*');
-    });
-
-    // ================================================================
-
-    $("#smartStart").click(function () 
+    function handleMsgAction( action )
     {
-      $(".Nav1").hide(); //animate({ height: 'toggle' });
-      $(".list").hide();
-      $("Body").css({"background-image": "none"});
-
-      $(".letsGo").delay(500).fadeIn();
-
-      $(".nav_bottom").delay(500).fadeIn();
-      $(".fab_info").delay(500).fadeIn().css({"left": "25%"});
-      $(".fab_close").delay(500).fadeIn().css({"left": "45%"});
-      $(".fab_next").delay(600).fadeIn();
-
-      $("#box0").show("slide", { direction: "down" }, 500);
-    });
-
-
-    $("#reactApp1Start").click(function () 
-    {
-      $(".Nav1").hide(); //animate({ height: 'toggle' });
-      $(".list").hide();
-      $("Body").css({"background-image": "none"});
-
-      var fdnJson = mainData.folderData;
-      var folderName = ( fdnJson && fdnJson.react1 ) ? fdnJson.react1: 'j1';
-
-      window.location.href = folderName + '/index.html';
-    });
-
-    /**
-    * LAUNCH SMART START 
-    */
-    $("#smartStartEN").click(function () 
-    {
-      $(".Nav1").hide();
-      $(".list").hide();
-      $("Body").css({"background-image": "none"});
-
-      var fdnJson = mainData.folderData;
-      var folderName = ( fdnJson && fdnJson.react1 ) ? fdnJson.react1: 'SS';
-
-      window.location.href = folderName + '/EN/index.html';
-    });
-
-    $("#smartStartAM").click(function () 
-    {
-      $(".Nav1").hide();
-      $(".list").hide();
-      $("Body").css({"background-image": "none"});
-
-      var fdnJson = mainData.folderData;
-      var folderName = ( fdnJson && fdnJson.react1 ) ? fdnJson.react1: 'SS';
-
-      window.location.href = folderName + '/AM/index.html';
-    });
-
-
-    $("#pdfStart").click(function () 
-    {
-      var info = getAcrobatInfo();
-
-      console.log( info );
-
-      if ( info && info.acrobat ) 
+      if ( action )
       {
-        $(".Nav1").hide(); //animate({ height: 'toggle' });
-        $(".list").hide();
-        $("Body").css({ "background-image": "none" });
-
-        $( '.pdfGoIFrame' ).attr( 'data', 'job5.pdf#toolbar=0&navpanes=0&scrollbar=0' );
-        $( '.divPdfGo' ).show();
-
-        $(".nav_bottom").delay(500).fadeIn();
-        $(".fab_info").delay(500).fadeIn().css({ "left": "25%" })
-        $(".fab_close").delay(500).fadeIn().css({ "left": "45%" });
-        $(".fab_next").delay(600).fadeIn();        
-      }
-      else
-      {
-        $( '.aPdfTab' ).attr( 'href', 'job5.pdf' )[0].click();        
-      }
-
-    });
-
-    // -----------------------
-
-    $(".btn_o").click(function () 
-    {
-      var house = $( '#_houses' ).val();
-      var animals = $( '#_animals' ).val();
-      var reg_firstName = $( '#_reg_name' ).val();
-      var reg_lastName = $( '#_reg_lastName' ).val();
-
-      var dataJson = { house: house, animals: animals, reg_firstName: reg_firstName, reg_lastName: reg_lastName };
-      var data = { 'from': 'jobAidIFrame', 'action': 'hideIFrame', 'dataJson': dataJson };
-      window.parent.postMessage(data, '*');
-      console.log( dataJson );
-
-      $(".Nav1").show();
-      $(".list").show();
-      //$("Body").css({"background-image": "none"});
-
-      $( '.divPdfGo' ).hide();
-      $( '.letsGo' ).hide();
-
-      $( '.fab_close' ).hide();
-      $( '.nav_bottom' ).hide();
-      $( '.arrow_box_e' ).hide();
-      $( '.arrow_box_h' ).hide();
-
-    });
-
-    // ================================================================
-
-    var vtest = "version 0.3";
-    var vw = $(window).width();
-    var vh = $(window).height();
-    var letsGo_slider = 0;
-
-    var myurl = "beckolsystem.com";
-    var currenturl = window.location.hostname;
-
-    var button_cls = "";
-
-    var count = 0; // needed for safari
-
-    //////////////////////////////////////////////////////////////////////////////////////////////
-    /*------------------------------------*\
-          #AppBarTop 
-      \*------------------------------------*/
-    $('.Nav__icon').click(function () {
-      // media NavDrawer
-      if (vw <= 360) {
-        $('.navigation').css('width', '100%');
-      } else {
-        $('.navigation').css('width', '300px');
-      }
-      $('.scrim').show();
-    });
-
-
-    /*------------------------------------*\
-        #NavDrawer 
-    \*------------------------------------*/
-    $('.navigation').height(vh - 5);
-    $('.navigation__items').height(vh - 120);
-
-    $(".navigation__close").click(function () {
-      $('.navigation').width(0);
-      $('.scrim').css('display', 'none');
-    });
-
-    $(".scrim").click(function () {
-      $('.navigation').width(0);
-      $('.scrim').css('display', 'none');
-      $('dialog').css('display', 'none');
-    });
-
-    $("a").click(function () {
-      $('.navigation').width(0);
-      $('.scrim').css('display', 'none');
-    });
-
-    var buttons = document.querySelectorAll('.mdc-button, .mdc-fab');
-    for (var i = 0, button; button = buttons[i]; i++) {
-      mdc.ripple.MDCRipple.attachTo(button);
-    }
-
-    var nodes = document.querySelectorAll('.mdc-icon-toggle');
-    for (var i = 0, node; node = nodes[i]; i++) {
-      mdc.iconToggle.MDCIconToggle.attachTo(node);
-    }
-
-    var checkboxes = document.querySelectorAll('.mdc-checkbox');
-    for (var i = 0, checkbox; checkbox = checkboxes[i]; i++) {
-      new mdc.checkbox.MDCCheckbox(checkbox);
-    }
-
-    var radios = document.querySelectorAll('.mdc-radio');
-    for (var i = 0, radio; radio = radios[i]; i++) {
-      new mdc.radio.MDCRadio(radio);
-    }
-
-    var interactiveListItems = document.querySelectorAll('.mdc-list-item');
-    for (var i = 0, li; li = interactiveListItems[i]; i++) {
-      mdc.ripple.MDCRipple.attachTo(li);
-      // Prevent link clicks from jumping demo to the top of the page
-      li.addEventListener('click', function (evt) {
-        evt.preventDefault();
-      });
-    }
-
-    /*------------------------------------*\
-        #Menu display 
-    \*------------------------------------*/
-
-    $(".Nav2__icon").click(function () {
-      if ($('.Menus_display').is(':visible')) {
-        $('.Menus_display').css('display', 'none');
-        $('.fab-wrapper').show();
-        $('.Nav2__icon').css('transform', 'rotate(0deg)');
-      } else {
-        $('.Menus_display').css('display', 'table-row');
-        $('.fab-wrapper').css('display', 'none');
-        $('.Nav2__icon').css('transform', 'rotate(180deg)');
-      }
-    });
-
-    $(".menu_item_comtainer").click(function () {
-      $('.Menus_display').css('display', 'none');
-      $('.Nav2__icon').css('transform', 'rotate(0deg)');
-      $('.fab-wrapper').show();
-    });
-
-    /*
-    $(function () {
-      $(".draggable").draggable({
-        containment: 'body'
-      });
-    });
-    */
-
-    /* navigation prototype */
-
-    $('#select_onlyPrototype').on('change', function () {
-      var url = $(this).val();
-      var origin = window.location.origin;
-      if (url) {
-        window.location = `${origin}/your_folder/${url}`;
-      }
-      return false;
-    });
-
-    //////////////////////////////////////////////////////////////////////////////////////////////
-
-    $(window).on("orientationchange", function (event) {
-      console.log(window.orientation);
-      orientation_device();
-    });
-
-    orientation_device();
-
-    function orientation_device() {
-
-      if (window.orientation == 0) {
-        if (letsGo_slider == 1) {
-          //$("#letsGo_1").delay(500).show();
+        try {
+          if ( action.callBackEval ) eval( action.callBackEval );
         }
-        else if (letsGo_slider == 2) {
-        }
-      } else if (window.orientation == 90) {
-        if (window.orientation == 90) {
-          if (letsGo_slider == 1) {
-            //$("#letsGo_1").delay(500).show();
-          }
-          else if (letsGo_slider == 2) {
-          }
-        }
-      }
-    }
-
-    function slider_position(elm, sld_number) {
-      var cta_slider = elm + '-' + sld_number;
-      console.log('elem: ' + cta_slider);
-      switch (cta_slider) {
-        // - 0
-        case "fab_next-0":
-          break;
-        case "fab_back-0":
-          console.log('slider_1: ' + sld_number);
-
-          $(".arrow_box_e").hide("slide", { direction: "left" }, 100);
-          $(".arrow_box_h").hide("slide", { direction: "left" }, 100);
-
-          $(".arrow_box_h").css({
-            "left": "90px"
-          });
-
-          $("#letsGo_0").show("slide", { direction: "down" }, 1000);
-          $(".letsGo").css({
-            "background-image": "url('./images/letsGo_landscape.svg')",
-            "background-color": "#FDC99D"
-          }, 1000);
-          $("#letsGo_1").hide("slide", { direction: "right" }, 1200);
-          $(".fab_back").hide("slide", { direction: "down" }, 500);
-          $("#box0").show("slide", { direction: "down" }, 3000);
-          $("#box1").hide("slide", { direction: "down" }, 500);
-          break;
-        // - 1
-        case "fab_next-1":
-          console.log('slider_1: ' + sld_number);
-          $("#box0").hide("slide", { direction: "down" }, 500);
-          $("#box1").show("slide", { direction: "down" }, 3000);
-
-          $(".arrow_box_e").hide("slide", { direction: "left" }, 100);
-          $(".arrow_box_h").hide("slide", { direction: "left" }, 100);
-
-          $(".arrow_box_h").css({
-            "left": "90px"
-          });
-
-          $(".arrow_box_h").css({
-            "left": "120px"
-          });
-
-          $("#letsGo_0").delay(1).fadeOut();
-          $(".letsGo").css({
-            "background-image": "none",
-            "background-color": "#FDC99D"
-          });
-          $(".fab_back").delay(500).fadeIn().css({
-            "left": "16px"
-          }, 500);
-          $("#letsGo_1").css({
-            "display": "grid"
-          })
-          $("#letsGo_1").delay(1000).show();
-          break;
-
-        case "fab_back-1":
-          console.log('slider_1xxxx: ' + sld_number);
-
-          $("#letsGo_2").hide("slide", { direction: "right" }, 500);
-
-          $("#letsGo_1").show("slide", { direction: "left" }, 500);
-
-          $(".letsGo").css({
-            "background-image": "none",
-            "background-color": "#FDC99D"
-          }), 500;
-          $("#box1").show("slide", { direction: "down" }, 3000);
-          break;
-
-        // - 2
-        case "fab_next-2":
-          console.log('slider_2: ' + sld_number);
-          $("#box1").hide("slide", { direction: "down" }, 500);
-
-          $("#letsGo_1").hide("slide", { direction: "left" }, 500);
-
-          $(".letsGo").css({
-            "background-image": "none",
-            "background-color": "#F7B01A"
-          });
-
-          $("#letsGo_2").show("slide", { direction: "left" }, 500);
-
-          break;
-
-        case "fab_back-2":
-          console.log('fab_back_2: ' + sld_number);
-          $("#box1").hide("slide", { direction: "down" }, 500);
-
-          $("#letsGo_3").hide("slide", { direction: "down" }, 1000);
-          $(".letsGo").css({
-            "background-image": "none",
-            "background-color": "#F7B01A"
-          }, 1000);
-          $("#letsGo_2").show("slide", { direction: "left" }, 1200);
-          $(".fab_next").show("slide", { direction: "down" }, 500);
-          $("#box_thanks").hide();
-          break;
-
-        // - 3
-        case "fab_next-3":
-          console.log('slider_1: ' + sld_number);
-          $("#box2").show("slide", { direction: "up" }, 1500);
-          $(".fab_next").hide("slide", { direction: "down" }, 500);
-          $("._family").delay(1000).show();
-
-
-          $("#letsGo_3").show("slide", { direction: "down" }, 1000);
-          $(".letsGo").css({
-            "background-image": "none",
-            "background-color": "#ECB343"
-          }, 1000);
-          $("#letsGo_2").hide("slide", { direction: "left" }, 2000);
-          break;
-
-        case "fab_next-3":
-          console.log('slider_1: ' + sld_number);
-          $("#box2").show("slide", { direction: "down" }, 500);
-
-
-          $("#letsGo_3").show("slide", { direction: "down" }, 1000);
-          $(".letsGo").css({
-            "background-image": "none",
-            "background-color": "#ECB343"
-          }, 1000);
-          $("#letsGo_2").hide("slide", { direction: "left" }, 1200);
-          break;
-        /*fab_back-1
-      case 2:
-        //code block
-        break;
-        */
-      }
-    }
-
-    $(".fab_back").click(function () {
-      letsGo_slider = letsGo_slider - 1;
-      button_cls = $(this).attr('class');
-
-      slider_position(button_cls, letsGo_slider);
-    });
-
-
-    $(".fab_next").click(function () {
-      letsGo_slider = letsGo_slider + 1;
-      button_cls = $(this).attr('class');
-
-      slider_position(button_cls, letsGo_slider);
-    });
-
-    // dialogs
-
-    $(".fab_close").click(function () {
-      $(".arrow_box_e").show("slide", { direction: "left" }, 500);
-    });
-
-    $(".fab_info").click(function () {
-      $(".arrow_box_h").show("slide", { direction: "left" }, 500);
-    });
-
-    $(".arrow_head-cta").click(function () {
-      $(".arrow_box_e").hide("slide", { direction: "left" }, 500);
-      $(".arrow_box_h").hide("slide", { direction: "left" }, 500);
-    });
-
-    $(".btn_box2").click(function () {
-      $("#box2").hide();
-      $("#box_thanks").show();
-    });
-
-    $(".btn_box_thanks").click(function () {
-      $("#box_thanks").hide();
-    });
-
-    //$(".btn_o").click(function () { });
-
-    //calc inputs
-    $("#_houses").change(function () {
-      //console.log($("#_houses").val());
-      calc1($("#_houses").val(), $("#_animals").val());
-    });
-
-    $("#_animals").change(function () {
-      //console.log($("#_animals").val());
-      calc1($("#_houses").val(), $("#_animals").val());
-    });
-
-    function calc1(h, a) {
-      var result = h / a;
-      if (result != "Infinity") {
-        $("#_result").html(result);
+        catch ( errMsg ) { console.log( 'ERROR in handleMsgAction, ' + errMsg ); }
       }
     };
 
-    // NEW: Video Selector..
-    $(".selVideoChoice").change(function()
-    {
-      var videoName = $( this ).val();
+    // ------------------------
 
-      //var videoTag = `<video src="${videoName}" crossOrigin="anonymous"></video>`;
+    // On Start, ask WFA for jobAid FolderNames
+    window.parent.postMessage( { 'from': 'jobAidIFrame', 'actions': [ 
+      { name: 'getJobFolderNames', callBackEval: ' mainData.folderData = action.data; ' }, 
+      { name: 'getCountryCode_NoT', callBackEval: ' mainData.countryCode = action.data; ' } 
+    ] }, '*');
 
-      var videoTag = `<video width="320" height="240" controls crossOrigin="anonymous">
-        <source src="${videoName}" type="video/mp4" crossOrigin="anonymous">
-        Your browser does not support the video tag.
-      </video>`;
-      
-      $( '.divVideoSec' ).html( videoTag );
+  /*   window.parent.postMessage( { 'from': 'jobAidIFrame', 'action': 
+      { name: 'WFARunEval',
+        WFARunEval: [ 
+          '		var clientList = ClientDataManager.getClientListByFields( action.data ); ',
+          ' { callBackEval: action.callBackEval, data: clientList };'
+        ],
+        callBackEval: 'clientsFound( action.data );', 
+        data: { firstName: 'Tester', lastName: 'Last' } } 
+    }, '*' ); */
+
+
+    // ===========================================
+
+
+    $(document).ready( function() {
+
+      $( '.divPageReload' ).click( function(e) {
+        e.preventDefault;
+        e.stopPropagation();
+        location.reload(true);
+      });
+
+      $('#btnPageClose').click(function () {
+        var data = { 'from': 'jobAidIFrame', 'action': 'hideIFrame' };
+        window.parent.postMessage(data, '*');
+      });
+
+      $( '.exitJobAids' ).click( function() {
+        var data = { 'from': 'jobAidIFrame', 'action': 'hideIFrame' };
+        window.parent.postMessage(data, '*');
+      });
+
+      // ================================================================
+
+      /**
+      * BUILD SMART START LIST
+      */ 
+
+      availableVersions.forEach(lang => $('.list').append(
+        `
+        <div class="card smartStart" data-language="${lang.code}">
+          <div class="card__container">
+            <card__support_visuals class="card__support_visuals">
+              <img src="./images/JobAidicons.svg">
+            </card__support_visuals>
+            <card__content class="card__content">
+              <div class="card__row"><strong>Smart Start ${jobAidsVersion} [${lang.language}]</strong></div>
+              <div class="card__row"><strong>Release date:</strong> ${buildDate}</div>
+              <div class="card__row"><strong>Download size:</strong> ${downloadSize}</div>
+            </card__content>
+          </div>
+        </div>
+      `
+      ))
+
+      /**
+      * LAUNCH SMART START 
+      */
+
+      $(".smartStart").click(function () 
+      {
+        const language = $(this).data('language').toUpperCase()
+        $(".Nav1").hide();
+        $(".list").hide();
+        $("Body").css({"background-image": "none"});
+
+        var fdnJson = mainData.folderData;
+        //var folderName = ( fdnJson && fdnJson.react1 ) ? fdnJson.react1: 'v0.4.1';
+        //var folderName = 'v0.5.0';
+
+        //window.location.href = folderName + `/${language}/index.html`;
+        window.location.href = jobAidsVersion + `/${language}/index.html`;
+      });
+
+      // ================================================================
+
+      var vw = $(window).width();
+      var vh = $(window).height();
+
+      //////////////////////////////////////////////////////////////////////////////////////////////
+      /*------------------------------------*\
+            #AppBarTop 
+        \*------------------------------------*/
+      $('.Nav__icon').click(function () {
+        // media NavDrawer
+        if (vw <= 360) {
+          $('.navigation').css('width', '100%');
+        } else {
+          $('.navigation').css('width', '300px');
+        }
+        $('.scrim').show();
+      });
+
+
+      /*------------------------------------*\
+          #NavDrawer 
+      \*------------------------------------*/
+      $('.navigation').height(vh - 5);
+      $('.navigation__items').height(vh - 120);
+
+      $(".navigation__close").click(function () {
+        $('.navigation').width(0);
+        $('.scrim').css('display', 'none');
+      });
+
+      $(".scrim").click(function () {
+        $('.navigation').width(0);
+        $('.scrim').css('display', 'none');
+      });
+
+      $("a").click(function () {
+        $('.navigation').width(0);
+        $('.scrim').css('display', 'none');
+      });
+      //////////////////////////////////////////////////////////////////////////////////////////////
     });
-
-  });
-</script>
+  </script>
 
 </head>
-<!-- landigpage -->
 
 <body class="theme-light_green">
-  <!--    This is the home page. <button id="btnPageClose" title="close">x</button>
-    <br>Click <a href="j1/test.html">here</a> to go to j1/test.html page
--->
   <div class="navigation">
     <div class="navigation__header">
       <div class="navigation__logo"></div>
-      <div class="navigation__user">User name</div>
+      <div class="navigation__user">JobAids</div>
       <div class="navigation__close"></div>
     </div>
     <div class="navigation__items">
@@ -640,8 +202,7 @@
         <path class="menu-icon" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
       </svg>
     </div>
-    <div class="Nav__Title">Job Aids <div class="divPageReload" style="display: contents; cursor: pointer;"> [O]</div>
-    </div>
+    <div class="Nav__Title"><div class="divPageReload" style=" cursor: pointer;">Job Aids Apps</div></div>
     <div class="Nav__sync">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path class="Nav__sync-d"
@@ -674,225 +235,47 @@
 
   <div class="wrapper">
     <div class="list">
-      <div class="card" id="smartStartEN">
+      <!-- EN -->
+      <!-- <div class="card smartStart" data-language="EN">
         <div class="card__container">
           <card__support_visuals class="card__support_visuals">
             <img src="./images/JobAidicons.svg">
           </card__support_visuals>
           <card__content class="card__content">
-            <div class="card__row"><b>Smart Start [English]</b></div>
-            <div class="card__row">ver 0.3.0 Mar 9, 2022</div>
-            <div class="card__row">0.04 GB</div>
+            <div class="card__row"><strong>Smart Start v0.5.1 [English]</strong></div>
+            <div class="card__row"><strong>Release date:</strong> Mar 17, 2022</div>
+            <div class="card__row"><strong>Download size:</strong> 0.04 GB</div>
           </card__content>
         </div>
-      </div>
-      <div class="card" id="smartStartAM">
+      </div> -->
+      <!-- AM -->
+      <!-- <div class="card smartStart" data-language="AM">
         <div class="card__container">
           <card__support_visuals class="card__support_visuals">
             <img src="./images/JobAidicons.svg">
           </card__support_visuals>
           <card__content class="card__content">
-            <div class="card__row"><b>Smart Start [Amharic]</b></div>
-            <div class="card__row">ver 0.3.0 Mar 9, 2022</div>
-            <div class="card__row">0.04 GB</div>
+            <div class="card__row"><strong>Smart Start v0.5.2 [Amharic]</strong></div>
+            <div class="card__row"><strong>Release date:</strong> Mar 18, 2022</div>
+            <div class="card__row"><strong>Download size:</strong> 0.04 GB</div>
           </card__content>
         </div>
-      </div>
-      <!-- <div class="card" id="smartStart">
+      </div> -->
+      <!-- OM -->
+      <!-- <div class="card smartStart" data-language="OM">
         <div class="card__container">
           <card__support_visuals class="card__support_visuals">
             <img src="./images/JobAidicons.svg">
           </card__support_visuals>
           <card__content class="card__content">
-            <div class="card__row"><b>Smart Start</b></div>
-            <div class="card__row">ver 1.45 Apr 12, 2021</div>
-            <div class="card__row">1.2 GB</div>
-          </card__content>
-        </div>
-      </div>
-      <div class="card" id="pdfStart">
-        <div class="card__container">
-          <card__support_visuals class="card__support_visuals">
-            <img src="./images/kuwa_mjanja.png">
-          </card__support_visuals>
-          <card__content class="card__content">
-            <div class="card__row"><b>Kuwa Mjanja</b></div>
-            <div class="card__row">ver 2.4.13 Feb 3/2019</div>
-            <div class="card__row">2.5 GB<a href="" class="aPdfTab" target="_blank"></a></div>
-          </card__content>
-        </div>
-      </div>
-      <div class="card" id="reactApp1Start">
-        <div class="card__container">
-          <card__support_visuals class="card__support_visuals">
-            <img src="./images/kuwa_mjanja.png">
-          </card__support_visuals>
-          <card__content class="card__content">
-            <div class="card__row"><b>React App1</b></div>
-            <div class="card__row">ver 1.0.0 Jan 17/2021</div>
-            <div class="card__row">0.1 GB</div>
+            <div class="card__row"><strong>Smart Start v0.5.2 [Oromo]</strong></div>
+            <div class="card__row"><strong>Release date:</strong> Mar 18, 2022</div>
+            <div class="card__row"><strong>Download size:</strong> 0.04 GB</div>
           </card__content>
         </div>
       </div> -->
     </div>
-
-    <div class="divPdfGo" class="iframeDiv" style="display: none;">
-      <object class="pdfGoIFrame" data="" style="width:100%; height: 100%; overflow:auto; border:none;"></object>
-    </div>
-
-    <div class="newPageDiv newPage" style="display: none;">
-    </div>
-
-    <div class="letsGo">
-      <div style="margin-top: 20px; margin-left: 60px;">
-        <select class="selVideoChoice">
-          <option value="">Select Video</option>
-          <option value="./videos/movie.mp4">bear</option>
-          <option value="./videos/mov_bbb.mp4">whiteBear</option>
-          <option value="./videos/dhis2.mp4">dhis2</option>
-        </select>
-        <div class="divVideoSec" style="margin-top: 5px;"></div>
-      </div>
-
-      <!-- 0 -->
-      <div id="letsGo_0">
-        <img src="./images/intro1.png">
-        <div id="box0" class="arrow_box">
-          <div class="arrow_head">
-            <div class="arrow_head-wra">
-              Let’s talk about how you could start saving money to put towards achieving your goal.
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- 1 -->
-      <div id="letsGo_1">
-        <div class="image1"><img src="./images/corn_grains_cta.png"></div>
-        <div class="image2"><img src="./images/baby_cta.png"></div>
-        <div class="image3"><img src="./images/home_cta.png"></div>
-        <div class="image4"><img src="./images/bovines_cta.png"></div>
-        <div class="image5"><img src="./images/note_cta.png"></div>
-        <div class="noimage"></div>
-        <div class="image6"><img src="./images/tea.png"></div>
-        <div class="image7"><img src="./images/mini_home_cta.png"></div>
-        <div class="image8"><img src="./images/mobile_cta.png"></div>
-      </div>
-
-      <div id="box1" class="arrow_box">
-        <div class="arrow_head">
-          <div class="arrow_head-wra">
-            You could...<br />
-            1.Increase income by:
-            <ul>
-              <li>Taking an extra job</li>
-              <li>Making things to sell at the market</li>
-            </ul>
-            You could...<br />
-            2.Decrease costs by:
-            <ul>
-              <li>Cutting expenses</li>
-              <li>Delaying your next child
-                Which of these strategies are you planning to use to achieve your goal?
-                What barriers might you encounter?</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div id="letsGo_2">
-        <div class="letsGo_text">
-          Think about your future as a family.
-          What do you envision or hope for? Do you have
-          any specific goals for the future, that you want to
-          achieve in 1-2 years? What are they?
-          Let’s figure out what it would take to achieve your
-          goal, given your resources.
-        </div>
-        <div class="letsGo_img">
-          <div class="img1"><img src="./images/home_cta.png"></div>
-          <div class="img2"><img src="./images/bovines_cta.png"></div>
-          <div class="input1"><input id="_houses" type="number" maxlength="10"></div>
-          <div class="input2"><input id="_animals" ype="number" maxlength="10"></div>
-        </div>
-        <div class="letsGo_calc">
-          <div class="g1">TOTAL COST OF GOAL</div>
-          <div class="g2">/</div>
-          <div class="g3">AMOUNT SAVED PER MONTH</div>
-        </div>
-        <div class="letsGo_result">
-          <div class="text1">It looks like you could achieve this goal in <span id="_result"> </span> months! How does
-            this sound to you?</div>
-        </div>
-      </div>
-
-      <div id="letsGo_3">
-        <div class="_family"><img src="./images/intro1.png"></div>
-        <div id="box2" class="arrow_box_exit">
-          <div class="arrow_head">
-            <div class="arrow_head-title">Smart Start</div>
-            <div class="arrow_head-svtitle">Let’s register!</div>
-            <div class="arrow_head-wra">What’s your name?</div>
-            <div class="arrow_head-pss">
-              <input type="text" id="_reg_name" placeholder="Name">
-              <input type="text" id="_reg_lastName" placeholder="Last name">
-            </div>
-            <div class="btn_c btn_box2">Continue</div>
-          </div>
-        </div>
-
-        <div id="box_thanks" class="arrow_box_exit">
-          <div class="arrow_head">
-            <div class="arrow_head-title">Thanks Rodolfo</div>
-            <div class="arrow_head-wra">Please give back the device to the health worke</div>
-            <div class="btn_c btn_box_thanks">Close</div>
-          </div>
-        </div>
-      </div>
-
-    </div>
   </div>
-
-  </div>
-  </div>
-  <!-- CLOSE -->
-  <div class="fab_close" style="display: none;"><img src="./images/nav_close.svg"></div>
-
-  </div>
-  <div class="nav_bottom">
-    <div class="fab_back"><img src="./images/nav_back.svg"></div>
-    <div class="fab_info"><img src="./images/nav_help.svg"></div>
-    <div class="fab_next"><img src="./images/nav_next.svg"></div>
-  </div>
-
-  <div class="arrow_box_e">
-    <div class="arrow_head">
-      <div class="arrow_head-title">Exit Job Aids</div>
-      <div class="arrow_head-cta"><img src="./images/close.svg"></div>
-      <div class="arrow_head-wra">To exit enter your PIN please:</div>
-      <div class="arrow_head-pss">
-        <input type="password" value="1" maxlength="1">
-        <input type="password" value="2" maxlength="1">
-        <input type="password" value="3" maxlength="1">
-        <input type="password" value="" maxlength="1">
-      </div>
-
-      <div class="btn_c">Cancel</div>
-      <div class="btn_o">Ok</div>
-    </div>
-  </div>
-
-  <div class="arrow_box_h">
-    <div class="arrow_head">
-      <div class="arrow_head-title">Title</div>
-      <div class="arrow_head-cta"><img src="./images/close.svg"></div>
-      <div class="arrow_head-wra">
-        Assertively whiteboard flexible alignments rather than world-class niche markets. Uniquely.
-      </div>
-    </div>
-  </div>
-
-  </div>
-
   <div class="scrim"></div>
 </body>
 
